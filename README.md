@@ -1,8 +1,11 @@
 # Sample .NET Framework WCF Catalog Service
 
 A .NET Framework 4.8 WCF SOAP service exposing a product catalog, provided as a fixed,
-self-contained starting point for .NET modernization and migration experiments — including
-AWS Transform for .NET.
+self-contained **input** for WCF-to-ASP.NET Core Web API transformation experiments with
+AWS Transform Custom.
+
+This repository contains only the legacy WCF service — the starting point. It does not contain a
+converted Web API project; producing one is the exercise.
 
 The code is the `eShopWCFService` project from Microsoft's **eShop** modernization reference
 application, reproduced here as a standalone sample. It is deliberately kept **as-is**: the
@@ -178,6 +181,32 @@ what came back. The script exits non-zero if anything fails, so it works in a bu
 The four mutating operations are deliberately not covered, because `RemoveCatalogItem` faults (see
 [Legacy Patterns Demonstrated](#legacy-patterns-demonstrated)) and a create/delete round trip
 therefore cannot clean up after itself.
+
+## WCF to Web API Transformation
+
+This sample is the input side of a WCF-to-ASP.NET Core Web API migration. The mappings a
+transformation has to make, and which make this service a useful test case:
+
+| WCF construct here | ASP.NET Core equivalent |
+|---|---|
+| `[ServiceContract]` on `ICatalogService` | Controller class, or a set of minimal API endpoints |
+| `[OperationContract]` methods | Actions with `[HttpGet]` / `[HttpPost]` / `[HttpPut]` / `[HttpDelete]` |
+| `[DataContract]` / `[DataMember]` entities | Plain DTOs serialized as JSON |
+| `CatalogService.svc` + `Web.config` endpoints | `Program.cs` startup and routing |
+| `Web.config` connection string and XDT transforms | `appsettings.json` plus environment overrides |
+| Constructor-instantiated `DbContext`, `IDisposable` contract | `DbContext` registered in DI with a scoped lifetime |
+| Entity Framework 6.1.3 | EF Core |
+| `null` returns to signal absence | `NotFound()` / `404` |
+| `void` returns to signal completion | `NoContent()` / `204`, or `CreatedAtAction` for creates |
+| SOAP faults | `ProblemDetails` error responses |
+| Synchronous data access | `async` actions with `await` and `CancellationToken` |
+| `basicHttpBinding` over HTTP | Kestrel with HTTPS redirection |
+
+The operations are not uniformly straightforward, which is the point. `GetCatalogItems` uses `0` as
+a sentinel for "no filter" and needs to become optional query parameters. `CreateAvailableStock` is
+an upsert behind a create-shaped name. `RemoveCatalogItem` takes a whole entity where a REST delete
+would take an id — and is also the operation that currently faults. A transformation that only
+renames attributes will carry all of this across unchanged.
 
 ## Provenance
 
