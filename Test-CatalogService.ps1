@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 <#
 .SYNOPSIS
     Smoke-tests the eShop WCF CatalogService over SOAP and reports pass/fail per operation.
