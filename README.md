@@ -16,7 +16,7 @@ application, reproduced here as a standalone sample.
 | Upstream path | `eShopLegacyNTier/src/eShopWCFService` |
 | Upstream commit | `63bc9ec` |
 | License | MIT — © .NET Foundation and Contributors (see `LICENSE`) |
-| Modifications | Retargeted 4.6.1 → 4.8 in `eShopWCFService.csproj` and `Web.config`; added `eShopWCFService.slnx` |
+| Modifications | Retargeted 4.6.1 → 4.8 in `eShopWCFService.csproj` and `Web.config`; added `eShopWCFService.slnx` and `Test-CatalogService.ps1` |
 
 The upstream repository holds several eShop samples — WebForms, MVC, N-tier, and their
 modernized counterparts. Only the N-tier WCF service is reproduced here. Its companion
@@ -34,7 +34,7 @@ A .NET Framework 4.8 WCF SOAP service exposing a product catalog.
 | Data access | Entity Framework 6.1.3, SQL Server LocalDB |
 | Project format | Non-SDK `.csproj` with `packages.config`, plus an `.slnx` solution |
 | Size | 13 C# files, ~993 lines |
-| Tests | None |
+| Tests | None upstream; `Test-CatalogService.ps1` added here as a SOAP smoke test |
 
 ### Service operations
 
@@ -65,6 +65,31 @@ The connection string in `Web.config` points at `(localdb)\MSSQLLocalDB`, which 
 Windows-only. `CatalogDBInitializer` seeds reference data on first run via
 `CreateDatabaseIfNotExists`.
 
+## Testing
+
+`Test-CatalogService.ps1` calls every read operation over SOAP and checks each response
+against the seeded data. It is read-only, so it is safe to run repeatedly.
+
+```powershell
+# host the service, pointing EF at a LocalDB instance
+$env:ConnectionString = 'Data Source=(localdb)\eShopLocal;Initial Catalog=eShopDatabase;Integrated Security=True;MultipleActiveResultSets=True'
+& 'C:\Program Files\IIS Express\iisexpress.exe' /path:"$PWD\src\eShopWCFService" /port:62314 /clr:v4.0
+
+# then, in a second window
+.\Test-CatalogService.ps1
+```
+
+Each check prints the operation name, its `SOAPAction`, the parameters sent, what was expected
+and what came back. The script exits non-zero if anything fails, so it works in a build step.
+Use `-BaseUrl` if the service is hosted somewhere other than `http://localhost:62314`.
+
+`CatalogConfiguration` reads a `ConnectionString` environment variable and only falls back to
+the `EntityModel` entry in `Web.config` when it is absent, so setting that variable redirects
+EF at a different database without editing any config file.
+
+The four mutating operations are deliberately not covered, because `RemoveCatalogItem` faults
+(see the note below) and a create/delete round trip therefore cannot clean up after itself.
+
 ## Why this repository exists
 
 A fixed, isolated starting point for modernization experiments — cloning one project is
@@ -87,6 +112,9 @@ representative of real legacy code and that a migration has to address deliberat
 - `HasPrecision(19, 4)` and a `money` column type on the price property
 - `directoryBrowse` enabled in `Web.config`
 - Fully synchronous data access
+- `RemoveCatalogItem` hands a detached, deserialized entity to `DbSet.Remove`, which EF6
+  rejects because it is untracked, so the operation faults with HTTP 500 over SOAP.
+  `UpdateCatalogItem` avoids this by assigning `Entry(...).State` instead
 - `Web.config` still declares `httpRuntime targetFramework="4.6.1"` while `compilation`
   targets 4.8, a mismatch left by the retarget
 
