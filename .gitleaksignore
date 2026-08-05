@@ -1,0 +1,36 @@
+# Gitleaks false positives.
+#
+# Fingerprint format: <commit>:<filepath>:<rule-id>:<line>
+#
+# All entries below are .NET assembly PublicKeyToken values, which are NOT secrets:
+# a PublicKeyToken is the truncated SHA-1 hash of an assembly's strong-name *public*
+# key. It exists to be published — the CLR needs it to resolve assembly references,
+# so every consumer of a signed assembly must know it. The private key never appears
+# in an assembly or in config.
+#
+# The specific value flagged here, b77a5c561934e089, is Microsoft's own well-known
+# token identifying Microsoft-signed framework assemblies. It appears verbatim in
+# Microsoft's documentation and in millions of public .csproj and .config files. It
+# authenticates nothing and grants no access.
+#
+# Gitleaks matches it because "PublicKeyToken=<16 hex chars>" has the shape of a
+# generic "...Token=<high-entropy string>" credential assignment.
+#
+# These values cannot simply be deleted: the EF6 <section> registration and the
+# assembly <Reference> elements require fully-qualified type names that include the
+# PublicKeyToken. Removing them breaks the build and the runtime config binding.
+#
+# All three were introduced in 86f238b, the unmodified upstream import from
+# dotnet-architecture/eShopModernizing.
+
+# <section name="entityFramework" type="...EntityFrameworkSection, EntityFramework,
+#   Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" ... />
+86f238bf0b80269ebbf75ec61d922731fe0d8a07:src/eShopWCFService/Web.config:generic-api-key:5
+
+# <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral,
+#   PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+86f238bf0b80269ebbf75ec61d922731fe0d8a07:src/eShopWCFService/eShopWCFService.csproj:generic-api-key:45
+
+# <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral,
+#   PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+86f238bf0b80269ebbf75ec61d922731fe0d8a07:src/eShopWCFService/eShopWCFService.csproj:generic-api-key:48
