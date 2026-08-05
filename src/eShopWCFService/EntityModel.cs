@@ -1,7 +1,4 @@
-using System;
-using System.Data.Entity;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using eShopWCFService.Models;
 using eShopWCFService.Models.Infrastructure;
 
@@ -9,10 +6,9 @@ namespace eShopWCFService
 {
     public partial class EntityModel : DbContext
     {
-        public EntityModel()
-            : base(CatalogConfiguration.ConnectionString)
+        public EntityModel(DbContextOptions<EntityModel> options)
+            : base(options)
         {
-            Database.SetInitializer(new CatalogDBInitializer());
         }
 
         public virtual DbSet<CatalogBrand> CatalogBrands { get; set; }
@@ -21,23 +17,38 @@ namespace eShopWCFService
         public virtual DbSet<CatalogType> CatalogTypes { get; set; }
         public virtual DbSet<DiscountItem> DiscountItems { get; set; }
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<CatalogBrand>()
-                .Property(e => e.Brand)
-                .IsUnicode(false);
+            modelBuilder.Entity<CatalogBrand>(entity =>
+            {
+                entity.Property(e => e.Brand).IsUnicode(false);
+            });
 
-            modelBuilder.Entity<CatalogItem>()
-                .Property(e => e.Price)
-                .HasPrecision(19, 4);
+            modelBuilder.Entity<CatalogItem>(entity =>
+            {
+                entity.Property(e => e.Price).HasPrecision(19, 4);
+            });
 
-            modelBuilder.Entity<CatalogItemsStock>();
+            modelBuilder.Entity<CatalogType>(entity =>
+            {
+                entity.Property(e => e.Type).IsUnicode(false);
+            });
 
-            modelBuilder.Entity<CatalogType>()
-                .Property(e => e.Type)
-                .IsUnicode(false);
+            // Seed data
+            modelBuilder.Entity<CatalogType>().HasData(
+                PreconfiguredData.GetPreconfiguredCatalogTypes());
 
-            modelBuilder.Entity<DiscountItem>();
+            modelBuilder.Entity<CatalogBrand>().HasData(
+                PreconfiguredData.GetPreconfiguredCatalogBrands());
+
+            modelBuilder.Entity<CatalogItem>().HasData(
+                PreconfiguredData.GetPreconfiguredCatalogItems());
+
+            modelBuilder.Entity<CatalogItemsStock>().HasData(
+                PreconfiguredData.GetPreconfiguredCatalogItemsStock());
+
+            modelBuilder.Entity<DiscountItem>().HasData(
+                PreconfiguredData.GetPreconfiguredDiscountItems());
         }
     }
 }

@@ -1,7 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
 namespace eShopWCFService.Models.Infrastructure
 {
@@ -26,7 +24,7 @@ namespace eShopWCFService.Models.Infrastructure
             };
         }
 
-        public static IEnumerable<CatalogBrand> GetPreconfiguredCatalogBrands()
+        public static List<CatalogBrand> GetPreconfiguredCatalogBrands()
         {
             return new List<CatalogBrand>()
             {
@@ -38,20 +36,20 @@ namespace eShopWCFService.Models.Infrastructure
             };
         }
 
-        public static IEnumerable<DiscountItem> GetPreconfiguredDiscountItems()
+        public static List<DiscountItem> GetPreconfiguredDiscountItems()
         {
             return new List<DiscountItem>()
             {
-                new DiscountItem() { Start = new DateTime(2017, 9, 18), End = new DateTime(2017, 9, 21), Size = 0.3f },
-                new DiscountItem() { Start = new DateTime(2017, 9, 22), End = new DateTime(2017, 9, 26), Size = 0.25f },
-                new DiscountItem() { Start = new DateTime(2017, 9, 27), End = new DateTime(2017, 9, 30), Size = 0.1f },
-                new DiscountItem() { Start = new DateTime(2017, 10, 5), End = new DateTime(2017, 10, 20), Size = 0.5f },
-                new DiscountItem() { Start = new DateTime(2017, 11, 13), End = new DateTime(2017, 11, 25), Size = 0.3f },
-                new DiscountItem() { Start = new DateTime(2017, 12, 20), End = new DateTime(2017, 12, 25), Size = 0.25f },
+                new DiscountItem() { Id = 1, Start = new DateTime(2017, 9, 18), End = new DateTime(2017, 9, 21), Size = 0.3 },
+                new DiscountItem() { Id = 2, Start = new DateTime(2017, 9, 22), End = new DateTime(2017, 9, 26), Size = 0.25 },
+                new DiscountItem() { Id = 3, Start = new DateTime(2017, 9, 27), End = new DateTime(2017, 9, 30), Size = 0.1 },
+                new DiscountItem() { Id = 4, Start = new DateTime(2017, 10, 5), End = new DateTime(2017, 10, 20), Size = 0.5 },
+                new DiscountItem() { Id = 5, Start = new DateTime(2017, 11, 13), End = new DateTime(2017, 11, 25), Size = 0.3 },
+                new DiscountItem() { Id = 6, Start = new DateTime(2017, 12, 20), End = new DateTime(2017, 12, 25), Size = 0.25 },
             };
         }
 
-        public static IEnumerable<CatalogType> GetPreconfiguredCatalogTypes()
+        public static List<CatalogType> GetPreconfiguredCatalogTypes()
         {
             return new List<CatalogType>()
             {
@@ -62,7 +60,7 @@ namespace eShopWCFService.Models.Infrastructure
             };
         }
 
-        public static IEnumerable<CatalogItemsStock> GetPreconfiguredCatalogItemsStock()
+        public static List<CatalogItemsStock> GetPreconfiguredCatalogItemsStock()
         {
             return new List<CatalogItemsStock>()
             {
