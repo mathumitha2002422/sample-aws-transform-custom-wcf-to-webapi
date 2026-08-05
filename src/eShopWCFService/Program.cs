@@ -9,7 +9,10 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<EntityModel>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<ICatalogService, CatalogService>();
+if (builder.Configuration.GetValue<bool>("UseMockService"))
+    builder.Services.AddScoped<ICatalogService, CatalogServiceMock>();
+else
+    builder.Services.AddScoped<ICatalogService, CatalogService>();
 
 var app = builder.Build();
 
