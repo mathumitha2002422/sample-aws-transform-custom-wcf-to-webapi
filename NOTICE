@@ -1,0 +1,24 @@
+Sample .NET Framework WCF Catalog Service
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes third-party software.
+
+------------------------------------------------------------------------------
+
+eShopModernizing (eShopWCFService)
+Copyright (c) .NET Foundation and Contributors
+
+Source:  https://github.com/dotnet-architecture/eShopModernizing
+Path:    eShopLegacyNTier/src/eShopWCFService
+Commit:  63bc9ec
+License: MIT
+
+All files under src/ are reproduced from the above project. They are unmodified
+except for:
+  - the .NET Framework target being changed from 4.6.1 to 4.8 in
+    src/eShopWCFService/eShopWCFService.csproj and
+    src/eShopWCFService/Web.config
+  - the addition of src/eShopWCFService/eShopWCFService.slnx
+
+The full text of the applicable MIT license is reproduced in the
+THIRD-PARTY-LICENSES file.

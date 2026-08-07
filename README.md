@@ -1,124 +1,138 @@
-# eShop WCF Service Sample
+# Sample WCF SOAP Service
 
-The `eShopWCFService` project from Microsoft's **eShop** modernization reference
-application, reproduced here as a standalone sample.
+A sample WCF SOAP service on .NET Framework 4.8 for demonstrating AWS Transform Custom capabilities for WCF to ASP.NET Core Web API conversion.
 
-> **This is not original work.** The code comes from the `eShopLegacyNTier` solution in
-> [dotnet-architecture/eShopModernizing](https://github.com/dotnet-architecture/eShopModernizing),
-> © .NET Foundation and Contributors, MIT licensed. The C# source is copied verbatim; the
-> only local changes are a framework retarget and an added solution file (see Provenance).
+The code under `src/` is the `eShopWCFService` project from
+[dotnet-architecture/eShopModernizing](https://github.com/dotnet-architecture/eShopModernizing),
+reproduced as-is — the legacy patterns are the point of the sample, not defects to be fixed. See
+[License](#license) for attribution.
 
-## Provenance
+## Project Structure
 
-| | |
-|---|---|
-| Upstream repository | [dotnet-architecture/eShopModernizing](https://github.com/dotnet-architecture/eShopModernizing) |
-| Upstream path | `eShopLegacyNTier/src/eShopWCFService` |
-| Upstream commit | `63bc9ec` |
-| License | MIT — © .NET Foundation and Contributors (see `LICENSE`) |
-| Modifications | Retargeted 4.6.1 → 4.8 in `eShopWCFService.csproj` and `Web.config`; added `eShopWCFService.slnx` and `Test-CatalogService.ps1` |
-
-The upstream repository holds several eShop samples — WebForms, MVC, N-tier, and their
-modernized counterparts. Only the N-tier WCF service is reproduced here. Its companion
-`eShopWinForms` client is not included.
-
-## What this is
-
-A .NET Framework 4.8 WCF SOAP service exposing a product catalog.
-
-| | |
-|---|---|
-| Framework | .NET Framework 4.8 (upstream targeted 4.6.1) |
-| Service style | WCF SOAP, `basicHttpBinding`, `CatalogService.svc` |
-| Contract | `ICatalogService` — 10 `[OperationContract]` methods |
-| Data access | Entity Framework 6.1.3, SQL Server LocalDB |
-| Project format | Non-SDK `.csproj` with `packages.config`, plus an `.slnx` solution |
-| Size | 13 C# files, ~993 lines |
-| Tests | None upstream; `Test-CatalogService.ps1` added here as a SOAP smoke test |
-
-### Service operations
-
-| Operation | Returns |
-|---|---|
-| `FindCatalogItem(int id)` | `CatalogItem` (null if absent) |
-| `GetCatalogItems(int brandIdFilter, int typeIdFilter)` | `List<CatalogItem>` — 0 means no filter |
-| `CreateCatalogItem(CatalogItem)` | `void` |
-| `UpdateCatalogItem(CatalogItem)` | `void` |
-| `RemoveCatalogItem(CatalogItem)` | `void` |
-| `GetCatalogBrands()` | `List<CatalogBrand>` |
-| `GetCatalogTypes()` | `List<CatalogType>` |
-| `GetAvailableStock(DateTime date, int catalogItemId)` | `int` — 0 if no record |
-| `CreateAvailableStock(CatalogItemsStock)` | `void` — upsert by item + date |
-| `GetDiscount(DateTime day)` | `DiscountItem` (null if none active) |
-
-## Building
-
-Windows only. This is a non-SDK project targeting .NET Framework, so it needs MSBuild and
-the .NET Framework 4.8 targeting pack — `dotnet build` will not work.
-
-```powershell
-nuget restore
-msbuild eShopWCFService.csproj
+```
+src/eShopWCFService/
+├── CatalogService.svc            # Service host directive
+├── CatalogService.svc.cs         # ICatalogService implementation (EF-backed)
+├── ICatalogService.cs            # [ServiceContract] — 10 operations
+├── CatalogServiceMock.cs         # In-memory implementation
+├── CatalogServiceClient.cs       # ClientBase<T> proxy (not compiled)
+├── EntityModel.cs                # EF6 DbContext
+├── Models/
+│   ├── CatalogItem.cs            # [DataContract] entities
+│   ├── CatalogBrand.cs
+│   ├── CatalogType.cs
+│   ├── CatalogItemsStock.cs
+│   ├── DiscountItem.cs
+│   └── Infrastructure/           # Connection config, DB initializer, seed data
+├── Properties/
+│   └── AssemblyInfo.cs
+├── Web.config                    # WCF endpoints, EF provider, connection string
+├── Web.Debug.config              # XDT transform: Debug
+├── Web.Release.config            # XDT transform: Release
+├── packages.config               # EntityFramework 6.1.3
+├── eShopWCFService.csproj        # Project file (.NET Framework 4.8)
+└── eShopWCFService.slnx          # Solution file
 ```
 
-The connection string in `Web.config` points at `(localdb)\MSSQLLocalDB`, which is
-Windows-only. `CatalogDBInitializer` seeds reference data on first run via
-`CreateDatabaseIfNotExists`.
+## Features
 
-## Testing
+This sample demonstrates WCF and legacy .NET Framework patterns that are good candidates for
+conversion to ASP.NET Core Web API:
 
-`Test-CatalogService.ps1` calls every read operation over SOAP and checks each response
-against the seeded data. It is read-only, so it is safe to run repeatedly.
+### WCF Features Demonstrated
+
+- **Service Contracts** - `[ServiceContract]` and `[OperationContract]` on `ICatalogService`
+- **Data Contracts** - `[DataContract]` and `[DataMember]` on entity classes
+- **Config-driven hosting** - endpoints, `basicHttpBinding`, and behaviors declared in `Web.config`
+- **`.svc` service host** - `ServiceHost` directive rather than code-based startup
+- **`IDisposable` service contract** - the service constructs and owns its own `DbContext`
+- **Entity Framework 6** - `DbContext` with Fluent API mapping and a database initializer
+- **Synchronous data access** - no `async`/`await` anywhere
+- **Non-SDK project format** - `packages.config`, `HintPath` references, `WebApplication.targets`
+- **XDT config transforms** - `Web.Debug.config` and `Web.Release.config`
+- **SQL Server-specific mapping** - `money` column type and `HasPrecision(19, 4)`
+- **Null and void as protocol** - `null` signals absence, `void` signals completion, no fault contracts
+- **Client-assigned keys** - `Max(Id) + 1` with `DatabaseGeneratedOption.None`
+
+### Business Logic
+
+- Catalog item management (CRUD operations)
+- Brand and type lookups
+- Filtering by brand and type
+- Stock availability by item and date
+- Discount lookup by date
+
+## Building the Project
+
+### Prerequisites
+
+- Windows — this is a non-SDK .NET Framework project, so `dotnet build` will not work
+- Visual Studio 2019 or later, or MSBuild with the .NET Framework 4.8 targeting pack
+- SQL Server LocalDB
+- IIS Express, to host the service
+
+### Build Commands
 
 ```powershell
-# host the service, pointing EF at a LocalDB instance
-$env:ConnectionString = 'Data Source=(localdb)\eShopLocal;Initial Catalog=eShopDatabase;Integrated Security=True;MultipleActiveResultSets=True'
-& 'C:\Program Files\IIS Express\iisexpress.exe' /path:"$PWD\src\eShopWCFService" /port:62314 /clr:v4.0
+# the .csproj resolves assemblies via ..\packages, so restore into src\packages
+nuget restore src\eShopWCFService\packages.config -PackagesDirectory src\packages
+msbuild src\eShopWCFService\eShopWCFService.csproj /p:Configuration=Release
+```
 
-# then, in a second window
+## Running the Application
+
+```powershell
+& 'C:\Program Files\IIS Express\iisexpress.exe' /path:"$PWD\src\eShopWCFService" /port:62314 /clr:v4.0
+```
+
+The service is then at `http://localhost:62314/CatalogService.svc`, with WSDL at
+`http://localhost:62314/CatalogService.svc?wsdl`. The LocalDB database is created and seeded on
+first run, so no migration or schema script is needed.
+
+`Test-CatalogService.ps1` calls every read operation over SOAP and checks each response against the
+seeded data. It is read-only, so it is safe to run repeatedly:
+
+```powershell
+# with the service already running, in a second window
 .\Test-CatalogService.ps1
 ```
 
-Each check prints the operation name, its `SOAPAction`, the parameters sent, what was expected
-and what came back. The script exits non-zero if anything fails, so it works in a build step.
-Use `-BaseUrl` if the service is hosted somewhere other than `http://localhost:62314`.
+> **Note:** `RemoveCatalogItem` faults with HTTP 500 — it hands a detached entity to `DbSet.Remove`,
+> which EF6 rejects. This is preserved from upstream as a realistic migration finding.
 
-`CatalogConfiguration` reads a `ConnectionString` environment variable and only falls back to
-the `EntityModel` entry in `Web.config` when it is absent, so setting that variable redirects
-EF at a different database without editing any config file.
+## AWS Transform Custom Demo
 
-The four mutating operations are deliberately not covered, because `RemoveCatalogItem` faults
-(see the note below) and a create/delete round trip therefore cannot clean up after itself.
+This project is designed to showcase WCF to ASP.NET Core Web API conversion using AWS Transform
+Custom. Key conversion points include:
 
-## Why this repository exists
+1. **Service Contract to Controller** - `[ServiceContract]` interface becomes a controller or minimal API endpoints
+2. **Operation Contracts to Actions** - `[OperationContract]` methods map to `[HttpGet]` / `[HttpPost]` / `[HttpPut]` / `[HttpDelete]`
+3. **Data Contracts to DTOs** - `[DataContract]` entities become plain classes serialized as JSON
+4. **Config to Code** - `.svc` and `Web.config` endpoints become `Program.cs` startup and routing
+5. **Settings** - `Web.config` connection strings and XDT transforms become `appsettings.json` with environment overrides
+6. **Dependency Injection** - the self-constructed `DbContext` and `IDisposable` contract become a scoped DI registration
+7. **EF6 to EF Core** - `DbContext`, Fluent API mapping, and the initializer need porting
+8. **Return Conventions** - `null` becomes `404`, `void` becomes `204` or `CreatedAtAction`, SOAP faults become `ProblemDetails`
+9. **Async** - synchronous data access becomes `async` actions with `await` and `CancellationToken`
 
-A fixed, isolated starting point for modernization experiments — cloning one project is
-easier than cloning the whole upstream repository and working out which of its several
-solutions to target.
+Some operations need real design decisions rather than a mechanical rename: `GetCatalogItems` uses
+`0` as a sentinel for "no filter" and should become optional query parameters, `CreateAvailableStock`
+is an upsert behind a create-shaped name, and `RemoveCatalogItem` takes a whole entity where a REST
+delete would take an id.
 
-It is kept close to **as-is**: no fixes or cleanup beyond the 4.8 retarget noted above. The legacy
-patterns are the point. Anything applied on top belongs on a branch or in a fork, so this
-`main` stays a stable baseline to diff against.
+## Security
 
-Worth knowing before you use it as a baseline — the sample contains patterns that are
-representative of real legacy code and that a migration has to address deliberately:
-
-- `[ServiceContract]` on an interface that also inherits `IDisposable`, with the
-  implementation constructing its own `DbContext`
-- In-memory filtering — `.ToList()` then `.Where(...)` — in three operations
-- `Max(Id) + 1` key assignment, with `[DatabaseGenerated(DatabaseGeneratedOption.None)]`
-  on the keys
-- Operations returning `null` to signal absence, and `void` to signal completion
-- `HasPrecision(19, 4)` and a `money` column type on the price property
-- `directoryBrowse` enabled in `Web.config`
-- Fully synchronous data access
-- `RemoveCatalogItem` hands a detached, deserialized entity to `DbSet.Remove`, which EF6
-  rejects because it is untracked, so the operation faults with HTTP 500 over SOAP.
-  `UpdateCatalogItem` avoids this by assigning `Entry(...).State` instead
-- `Web.config` still declares `httpRuntime targetFramework="4.6.1"` while `compilation`
-  targets 4.8, a mismatch left by the retarget
+This sample is for local development and experimentation only, and is **not suitable for production
+use as-is**. It intentionally retains insecure development defaults — directory browsing, debug
+compilation, HTTP metadata publishing, and an unauthenticated endpoint with no transport security.
+Do not expose it on an untrusted network. See [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT. See `LICENSE`, reproduced verbatim from upstream. Original work © .NET Foundation
-and Contributors.
+This sample's own contributions are licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
+
+The code under `src/` is reproduced from
+[dotnet-architecture/eShopModernizing](https://github.com/dotnet-architecture/eShopModernizing)
+(`eShopLegacyNTier/src/eShopWCFService` at commit `63bc9ec`) and remains under its original MIT
+license, © .NET Foundation and Contributors. Full license text is in
+[THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES); attribution is recorded in [NOTICE](NOTICE).
